@@ -3,8 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <title>NotePet</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <p>NotePet loading…</p>
+  <div id="overlay" class="hidden"></div>
+  <div id="pet-container">
+    <img id="pet-img" src="../assets/default-pet.png" alt="pet" draggable="false" />
+  </div>
+  <div id="panel" class="hidden">
+    <div id="tag-filter"></div>
+    <div id="note-list"></div>
+    <div id="inline-modal" class="hidden"></div>
+    <button id="btn-add">+ 新增</button>
+    <button id="btn-manage-tags">管理標籤</button>
+  </div>
+  <div id="error-toast"></div>
+  <script src="app.js"></script>
 </body>
 </html>

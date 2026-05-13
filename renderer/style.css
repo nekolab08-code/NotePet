@@ -1,0 +1,128 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: 'Microsoft JhengHei', sans-serif;
+  user-select: none;
+}
+
+#pet-container {
+  position: fixed;
+  width: 80px; height: 80px;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+#pet-img {
+  width: 80px; height: 80px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+#overlay {
+  position: fixed; inset: 0;
+  background: transparent; z-index: 10;
+}
+
+#panel {
+  position: fixed;
+  width: 280px; max-height: 360px;
+  background: #fffde7;
+  border: 1px solid #f0c040;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.15);
+  overflow-y: auto; z-index: 20;
+  padding: 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.hidden { display: none !important; }
+
+#tag-filter { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag-btn {
+  padding: 2px 8px; border-radius: 12px;
+  border: 1px solid #ccc; background: #fff;
+  cursor: pointer; font-size: 12px;
+}
+.tag-btn.active { background: #f0c040; border-color: #d4a800; }
+
+.note-card {
+  background: #fff; border-radius: 8px;
+  padding: 8px 10px; cursor: pointer;
+  border: 1px solid #e0d090;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.note-card:hover { background: #fff9e0; }
+.note-card-title { font-weight: bold; font-size: 13px; }
+.note-card-meta { font-size: 11px; color: #888; margin-top: 2px; }
+.note-card-delete {
+  background: none; border: none;
+  color: #ccc; cursor: pointer; font-size: 16px; padding: 0 4px;
+}
+.note-card-delete:hover { color: #e00; }
+
+.note-editor {
+  display: flex; flex-direction: column; gap: 6px;
+  background: #fff; border-radius: 8px;
+  padding: 8px; border: 1px solid #e0d090;
+}
+.note-editor input, .note-editor textarea,
+.note-editor select, .note-editor input[type=datetime-local] {
+  width: 100%; padding: 4px 6px;
+  border: 1px solid #ddd; border-radius: 4px;
+  font-size: 13px; font-family: inherit;
+}
+.note-editor textarea { min-height: 60px; resize: vertical; }
+
+#btn-add, #btn-manage-tags {
+  background: #f0c040; border: none;
+  border-radius: 8px; padding: 6px;
+  cursor: pointer; font-size: 13px; font-family: inherit;
+}
+#btn-add:hover, #btn-manage-tags:hover { background: #d4a800; }
+
+/* Inline modal (replaces window.prompt/confirm) */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.3); z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-box {
+  background: #fff; border-radius: 10px;
+  padding: 16px; width: 240px;
+  display: flex; flex-direction: column; gap: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.3);
+}
+.modal-box p { font-size: 13px; }
+.modal-box input { width: 100%; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-actions button {
+  padding: 4px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px;
+}
+.modal-btn-primary { background: #f0c040; }
+.modal-btn-cancel  { background: #eee; }
+
+/* Simple context menu */
+.ctx-menu {
+  position: fixed; background: #fff;
+  border: 1px solid #ccc; border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  z-index: 9999; overflow: hidden; min-width: 140px;
+}
+.ctx-item {
+  padding: 8px 16px; cursor: pointer; font-size: 13px;
+}
+.ctx-item:hover { background: #f5f5f5; }
+
+#error-toast {
+  position: fixed; bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: #e00; color: #fff;
+  padding: 8px 16px; border-radius: 8px;
+  font-size: 13px; z-index: 9999;
+  opacity: 0; transition: opacity .3s;
+  pointer-events: none;
+}
+#error-toast.show { opacity: 1; }
