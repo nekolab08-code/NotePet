@@ -77,4 +77,87 @@ function showError(msg) {
   setTimeout(() => t.classList.remove('show'), 3000)
 }
 
+function setupPetClick(pet) {
+  pet.addEventListener('click', () => panelOpen ? closePanel() : openPanel())
+  pet.addEventListener('contextmenu', e => { e.preventDefault(); showPetContextMenu(e) })
+}
+
+function openPanel() {
+  panelOpen = true
+  window.notepet.togglePanel(true)
+  positionPanel()  // Direction locked at open time; not re-evaluated while panel is open
+  document.getElementById('panel').classList.remove('hidden')
+  document.getElementById('overlay').classList.remove('hidden')
+}
+
+function closePanel() {
+  if (!panelOpen) return
+  panelOpen = false
+  window.notepet.togglePanel(false)
+  document.getElementById('panel').classList.add('hidden')
+  document.getElementById('overlay').classList.add('hidden')
+  editingNoteId = null
+  renderNoteList()
+}
+
+function positionPanel() {
+  const pet = document.getElementById('pet-container')
+  const panel = document.getElementById('panel')
+  const px = parseInt(pet.style.left)
+  const py = parseInt(pet.style.top)
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  let x, y
+
+  if (px >= PANEL_THRESHOLD_H) {               // enough room on the left
+    x = px - PANEL_W - 4; y = py
+  } else if (vw - px - 80 >= PANEL_THRESHOLD_H) { // enough room on the right
+    x = px + 84; y = py
+  } else if (py >= PANEL_THRESHOLD_V) {          // enough room above
+    x = px; y = py - PANEL_H - 4
+  } else {                                       // bottom-right fallback
+    x = Math.min(px + 84, vw - PANEL_W)
+    y = Math.min(py + 84, vh - PANEL_H)
+  }
+
+  panel.style.left = Math.max(0, x) + 'px'
+  panel.style.top  = Math.max(0, y) + 'px'
+}
+
+async function showPetContextMenu(e) {
+  const items = ['更換搭子圖片', '關閉 NotePet']
+  const action = await showContextMenu(items, e.clientX, e.clientY)
+  if (action === '更換搭子圖片') {
+    const result = await window.notepet.changeImage()
+    if (result && result.path) {
+      state.petImage = result.path
+      document.getElementById('pet-img').src = '../' + result.path
+    } else if (result && result.error) {
+      showError('更換失敗：' + result.error)
+    }
+  } else if (action === '關閉 NotePet') {
+    window.notepet.quit()
+  }
+}
+
+function showContextMenu(items, x, y) {
+  return new Promise(resolve => {
+    const menu = document.createElement('div')
+    menu.className = 'ctx-menu'
+    menu.style.left = x + 'px'
+    menu.style.top  = y + 'px'
+    items.forEach(label => {
+      const item = document.createElement('div')
+      item.className = 'ctx-item'
+      item.textContent = label
+      item.addEventListener('click', () => { menu.remove(); resolve(label) })
+      menu.appendChild(item)
+    })
+    document.body.appendChild(menu)
+    setTimeout(() => {
+      document.addEventListener('click', () => { menu.remove(); resolve(null) }, { once: true })
+    }, 0)
+  })
+}
+
 init()
