@@ -575,12 +575,6 @@ function openFloatNote(note, isNew = false) {
   saveBtn.className = 'floatnote-btn-save'
   saveBtn.textContent = '儲存'
 
-  const closeFloat = () => {
-    floatNoteMap.delete(note.id)
-    el.remove()
-    renderNoteList()
-  }
-
   cancelBtn.addEventListener('click', () => {
     if (isNew && !titleInput.value.trim() && !contentInput.value.trim()) {
       state.notes = state.notes.filter(n => n.id !== note.id)
@@ -617,6 +611,15 @@ function openFloatNote(note, isNew = false) {
 
   // Drag
   let dragging = false, ox = 0, oy = 0
+  const onDragMove = e => {
+    if (!dragging) return
+    const margin = 10
+    const nx = Math.min(Math.max(e.clientX - ox, margin), window.innerWidth  - 280 - margin)
+    const ny = Math.min(Math.max(e.clientY - oy, margin), window.innerHeight - 100 - margin)
+    el.style.left = nx + 'px'
+    el.style.top  = ny + 'px'
+  }
+  const onDragUp = () => { dragging = false }
   titlebar.addEventListener('mousedown', e => {
     dragging = true
     ox = e.clientX - el.offsetLeft
@@ -624,15 +627,16 @@ function openFloatNote(note, isNew = false) {
     bringFloatToFront(el)
     e.preventDefault()
   })
-  document.addEventListener('mousemove', e => {
-    if (!dragging) return
-    const margin = 10
-    const nx = Math.min(Math.max(e.clientX - ox, margin), window.innerWidth  - 280 - margin)
-    const ny = Math.min(Math.max(e.clientY - oy, margin), window.innerHeight - 100 - margin)
-    el.style.left = nx + 'px'
-    el.style.top  = ny + 'px'
-  })
-  document.addEventListener('mouseup', () => { dragging = false })
+  document.addEventListener('mousemove', onDragMove)
+  document.addEventListener('mouseup', onDragUp)
+
+  const closeFloat = () => {
+    document.removeEventListener('mousemove', onDragMove)
+    document.removeEventListener('mouseup', onDragUp)
+    floatNoteMap.delete(note.id)
+    el.remove()
+    renderNoteList()
+  }
 
   document.body.appendChild(el)
   floatNoteMap.set(note.id, el)
