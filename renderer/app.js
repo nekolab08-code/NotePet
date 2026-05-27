@@ -320,7 +320,7 @@ function buildNoteCard(note) {
   card.appendChild(preview)
 
   const tagPart = (note.tags || []).join(', ')
-  const hasReminder = note.reminder?.enabled && !note.reminder?.notified
+  const hasReminder = note.reminder?.enabled && !note.reminder?.notified && !!note.reminder?.datetime
   if (tagPart || hasReminder) {
     const meta = document.createElement('div')
     meta.className = 'note-card-meta'
