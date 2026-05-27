@@ -67,22 +67,35 @@
 ### 拖移實作
 
 - `mousedown` 在標題列觸發，`mousemove` / `mouseup` 在 `document`
-- 拖移期間呼叫 `window.notepet.setIgnoreMouse(false)` 確保可互動
 - 邊界限制：視窗四邊至少留 10px 在螢幕內
+
+### setIgnoreMouse 互動
+
+現有 `mousemove` handler 在 `panelOpen === false` 時會依游標下的元素自動切換 `setIgnoreMouse`。浮動視窗開啟時必須同樣抑制此自動切換，否則游標離開浮動視窗元素移到透明區域時會觸發 `setIgnoreMouse(true)`，導致拖移中斷。
+
+**實作方式：** `mousemove` handler 的判斷條件從 `if (panelOpen) return` 改為 `if (panelOpen || floatNoteMap.size > 0) return`。浮動視窗全部關閉後（`floatNoteMap` 為空），自動切換邏輯恢復正常。
 
 ### 多張並排
 
-- 以 `Map<noteId, DOMElement>` 追蹤目前開啟的浮動視窗
-- 同一張筆記雙擊兩次：不重複建立，改為將已存在的視窗 `zIndex` 提升到最高（`bringToFront`）
-- 沒有上限（由使用者自行管理）
+- `floatNoteMap`：`Map<noteId, HTMLElement>`，追蹤目前開啟的浮動視窗
+- 同一張筆記雙擊兩次：不重複建立，呼叫 `bringToFront(el)` 將已存在的視窗 `zIndex` 提升到最高
+- **z-index**：浮動視窗從 `1000` 開始，每次 `bringToFront` 使用遞增計數器（`floatZCounter`）；面板 `z-index: 20`，overlay `z-index: 10`，不衝突
+- 沒有開啟上限（由使用者自行管理）
+
+### 初始位置 offset
+
+- 基準點：`{ x: window.innerWidth/2 - 140, y: 80 }`（寬 280px 故 -140 置中）
+- 每次新開視窗加 `(20px, 20px)` offset
+- 若下一個位置會使視窗超出螢幕邊界（扣 10px margin），重置回基準點
 
 ### 按鈕行為
 
 | 按鈕 | 行為 |
 |---|---|
 | 儲存 | 呼叫 `saveNote()` 存檔，關閉視窗 |
-| 取消 | 放棄變更，關閉視窗；若為新建且 title+content 皆空，從 `state.notes` 移除 |
-| × | 同「取消」 |
+| 取消 / × | 放棄變更，關閉視窗；若 `isNew === true` 且**輸入欄位**（`titleInput.value` 與 `contentInput.value`）皆為空，從 `state.notes` 移除該筆記 |
+
+> **說明**：`addNote()` 建立筆記物件時 `title` / `content` 仍為空字串，直到「儲存」才寫入 state。因此取消時必須檢查 DOM 輸入欄位值，而非 `note.title` / `note.content`。`openFloatNote` 接受 `isNew` 參數（boolean）以區分新建 vs 編輯既有筆記。
 
 ### 提醒區塊
 
@@ -107,7 +120,7 @@
 
 | 檔案 | 變更類型 |
 |---|---|
-| `renderer/app.js` | 主要變更：移除 `editingNoteId` 與 `buildNoteEditor`；重寫 `buildNoteCard`；新增 `openFloatNote`、`formatCardDate`、`floatNoteMap` |
+| `renderer/app.js` | 主要變更：移除 `editingNoteId` 與 `buildNoteEditor`；重寫 `buildNoteCard`；新增 `openFloatNote(note, isNew)`、`formatCardDate`、`floatNoteMap`、`floatZCounter`；`addNote()` 加入 `createdAt: new Date().toISOString()`；`mousemove` handler 判斷條件加入 `floatNoteMap.size > 0`；移除 `closePanel` 的 `editingNoteId` guard（面板可在浮動視窗開啟時自由關閉，與 Escape 行為一致） |
 | `renderer/style.css` | 新增：`.note-card` 重構、`.floatnote-*` 樣式 |
 
 ---
