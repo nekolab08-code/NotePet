@@ -61,7 +61,6 @@ html, body {
   padding: 10px 12px;
   border-left: 3px solid #f0c040;
   border-bottom: 1px solid #f0e8a0;
-  border-radius: 0;
   display: flex; flex-direction: column; gap: 4px;
   cursor: default;
 }
@@ -188,7 +187,6 @@ html, body {
   border-radius: 10px;
   box-shadow: 0 6px 24px rgba(0,0,0,.35);
   display: flex; flex-direction: column;
-  overflow: hidden;
 }
 .floatnote-titlebar {
   background: #f0c040;
@@ -216,12 +214,14 @@ html, body {
   background: transparent; font-size: 14px; font-weight: bold;
   font-family: inherit; outline: none;
 }
+.floatnote-title-input:focus { border-bottom-color: #c8a000; }
 .floatnote-content {
   width: 100%; min-height: 100px; resize: vertical;
   border: 1px solid #e0d090; border-radius: 4px;
   padding: 6px 8px; font-size: 13px; font-family: inherit;
   background: #fff; outline: none;
 }
+.floatnote-content:focus { border-color: #f0c040; }
 .floatnote-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .floatnote-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .floatnote-btn-cancel {
@@ -232,3 +232,5 @@ html, body {
   background: #f0c040; border: none; border-radius: 6px;
   padding: 5px 14px; cursor: pointer; font-size: 12px; font-family: inherit;
 }
+.floatnote-btn-save:hover { filter: brightness(0.92); }
+.floatnote-btn-cancel:hover { background: #ddd; }
