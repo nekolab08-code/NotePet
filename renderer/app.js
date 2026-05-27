@@ -152,8 +152,14 @@ function openPanel() {
 function closePanel(force = false) {
   if (!panelOpen) return
   panelOpen = false
-  _mouseIgnored = true
   window.notepet.togglePanel(false)
+  if (floatNoteMap.size > 0) {
+    // Keep window interactive so open float notes remain usable
+    window.notepet.setIgnoreMouse(false)
+    _mouseIgnored = false
+  } else {
+    _mouseIgnored = true
+  }
   document.getElementById('panel').classList.add('hidden')
   document.getElementById('overlay').classList.add('hidden')
   renderNoteList()
@@ -635,6 +641,10 @@ function openFloatNote(note, isNew = false) {
     document.removeEventListener('mousemove', onDragMove)
     document.removeEventListener('mouseup', onDragUp)
     floatNoteMap.delete(note.id)
+    if (floatNoteMap.size === 0 && !panelOpen) {
+      window.notepet.setIgnoreMouse(true)
+      _mouseIgnored = true
+    }
     el.remove()
     renderNoteList()
   }
