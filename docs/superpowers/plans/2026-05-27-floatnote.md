@@ -217,7 +217,24 @@ Replace with:
   visible.forEach(note => list.appendChild(buildNoteCard(note)))
 ```
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Remove editingNoteId reference from deleteNote**
+
+Find:
+```js
+async function deleteNote(id) {
+  state.notes = state.notes.filter(n => n.id !== id)
+  if (editingNoteId === id) editingNoteId = null
+  const result = await window.notepet.save(state)
+```
+
+Replace with:
+```js
+async function deleteNote(id) {
+  state.notes = state.notes.filter(n => n.id !== id)
+  const result = await window.notepet.save(state)
+```
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add renderer/app.js
@@ -493,7 +510,7 @@ function openFloatNote(note, isNew = false) {
   closeBtn.addEventListener('click', () => cancelBtn.click())
 
   saveBtn.addEventListener('click', async () => {
-    await saveNote(note, {
+    const ok = await saveNote(note, {
       title:            titleInput.value.trim(),
       content:          contentInput.value.trim(),
       tags:             Array.from(selectedTags),
@@ -502,7 +519,7 @@ function openFloatNote(note, isNew = false) {
       reminderInterval: parseInt(intervalSelect.value),
       reminderAdvance:  Math.max(0, parseInt(advanceInput.value) || 0),
     })
-    closeFloat()
+    if (ok) closeFloat()
   })
 
   actions.appendChild(cancelBtn)
@@ -606,7 +623,7 @@ async function addNote() {
 }
 ```
 
-- [ ] **Step 2: Remove editingNoteId = null from saveNote**
+- [ ] **Step 2: Remove editingNoteId = null from saveNote; add return true**
 
 Find (near end of saveNote):
 ```js
@@ -624,8 +641,11 @@ Replace with:
   if (result && result.error) { showError('儲存失敗：' + result.error); return }
 
   renderNoteList()
+  return true
 }
 ```
+
+> `return true` lets callers (`openFloatNote`'s save button) know the save succeeded. All early-exit paths return `undefined` (falsy), so `if (ok) closeFloat()` only closes on success.
 
 - [ ] **Step 3: Verify end-to-end**
 
