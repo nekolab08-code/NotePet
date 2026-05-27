@@ -430,6 +430,7 @@ async function saveNote(note, edits) {
   if (result && result.error) { showError('儲存失敗：' + result.error); return }
 
   renderNoteList()
+  return true
 }
 
 // ── Floating note window ──────────────────────────────────────────────────────
@@ -656,14 +657,16 @@ async function deleteNote(id) {
 
 async function addNote() {
   const newNote = {
-    id:      window.notepet.newId(),
-    title:   '',
-    content: '',
-    tags:    [],
-    reminder: { enabled: false, datetime: '', notified: false, interval: 0, advanceMinutes: 10 },
+    id:        window.notepet.newId(),
+    title:     '',
+    content:   '',
+    tags:      [],
+    reminder:  { enabled: false, datetime: '', notified: false, interval: 0, advanceMinutes: 10 },
+    createdAt: new Date().toISOString(),
   }
   state.notes.unshift(newNote)
   renderNoteList()
+  openFloatNote(newNote, true)
 }
 
 // ── Tag manager ───────────────────────────────────────────────────────────────
