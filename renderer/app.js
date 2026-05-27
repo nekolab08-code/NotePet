@@ -432,6 +432,213 @@ async function saveNote(note, edits) {
   renderNoteList()
 }
 
+// ── Floating note window ──────────────────────────────────────────────────────
+
+function bringFloatToFront(el) {
+  el.style.zIndex = ++floatZCounter
+}
+
+function openFloatNote(note, isNew = false) {
+  if (floatNoteMap.has(note.id)) {
+    bringFloatToFront(floatNoteMap.get(note.id))
+    return
+  }
+
+  // Position with cascade offset, reset if out of bounds
+  const baseX = Math.floor(window.innerWidth / 2) - 140
+  const baseY = 80
+  let x = baseX + _floatOffset * 20
+  let y = baseY + _floatOffset * 20
+  if (x + 280 + 10 > window.innerWidth || y + 400 + 10 > window.innerHeight) {
+    _floatOffset = 0
+    x = baseX; y = baseY
+  }
+  _floatOffset++
+
+  const el = document.createElement('div')
+  el.className = 'floatnote'
+  el.style.left = x + 'px'
+  el.style.top  = y + 'px'
+  el.style.zIndex = ++floatZCounter
+  el.addEventListener('mousedown', () => bringFloatToFront(el))
+
+  // ── Title bar ──
+  const titlebar = document.createElement('div')
+  titlebar.className = 'floatnote-titlebar'
+  const titleText = document.createElement('span')
+  titleText.className = 'floatnote-title-text'
+  titleText.textContent = note.title || '新筆記'
+  const closeBtn = document.createElement('button')
+  closeBtn.className = 'floatnote-close'
+  closeBtn.textContent = '×'
+  titlebar.appendChild(titleText)
+  titlebar.appendChild(closeBtn)
+
+  // ── Body ──
+  const body = document.createElement('div')
+  body.className = 'floatnote-body'
+
+  const titleInput = document.createElement('input')
+  titleInput.type = 'text'
+  titleInput.className = 'floatnote-title-input'
+  titleInput.placeholder = '標題'
+  titleInput.value = note.title || ''
+  titleInput.addEventListener('input', () => {
+    titleText.textContent = titleInput.value.trim() || '新筆記'
+  })
+
+  const contentInput = document.createElement('textarea')
+  contentInput.className = 'floatnote-content'
+  contentInput.placeholder = '輸入內容...'
+  contentInput.value = note.content || ''
+
+  // Tags
+  const selectedTags = new Set(note.tags || [])
+  const tagWrap = document.createElement('div')
+  tagWrap.className = 'floatnote-tags'
+  state.tags.forEach(tag => {
+    const pill = document.createElement('button')
+    pill.type = 'button'
+    pill.className = 'tag-btn' + (selectedTags.has(tag) ? ' active' : '')
+    pill.textContent = tag
+    pill.addEventListener('click', () => {
+      selectedTags.has(tag) ? selectedTags.delete(tag) : selectedTags.add(tag)
+      pill.classList.toggle('active')
+    })
+    tagWrap.appendChild(pill)
+  })
+
+  // Reminder
+  const reminderRow = document.createElement('div')
+  reminderRow.style.cssText = 'display:flex;align-items:center;gap:8px'
+  const switchWrap = document.createElement('label')
+  switchWrap.className = 'toggle-switch'
+  const reminderCb = document.createElement('input')
+  reminderCb.type = 'checkbox'
+  reminderCb.checked = !!(note.reminder?.enabled)
+  const slider = document.createElement('span')
+  slider.className = 'toggle-slider'
+  switchWrap.appendChild(reminderCb)
+  switchWrap.appendChild(slider)
+  const reminderText = document.createElement('span')
+  reminderText.style.cssText = 'font-size:12px;cursor:pointer'
+  reminderText.textContent = '設定提醒'
+  reminderText.addEventListener('click', () => {
+    reminderCb.checked = !reminderCb.checked
+    reminderCb.dispatchEvent(new Event('change'))
+  })
+  reminderRow.appendChild(switchWrap)
+  reminderRow.appendChild(reminderText)
+
+  const reminderDetails = document.createElement('div')
+  reminderDetails.style.cssText = 'display:flex;flex-direction:column;gap:4px'
+  reminderDetails.style.display = reminderCb.checked ? 'flex' : 'none'
+
+  const datetimeInput = document.createElement('input')
+  datetimeInput.type = 'datetime-local'
+  datetimeInput.value = note.reminder?.datetime ? note.reminder.datetime.slice(0, 16) : ''
+  datetimeInput.style.cssText = 'width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;font-family:inherit'
+
+  const intervalSelect = document.createElement('select')
+  intervalSelect.style.cssText = 'width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;font-family:inherit'
+  ;[[0,'不重複'],[30,'每30分鐘'],[60,'每小時'],[120,'每2小時'],[240,'每4小時']].forEach(([val, label]) => {
+    const opt = document.createElement('option')
+    opt.value = val; opt.textContent = label
+    if ((note.reminder?.interval ?? 0) === val) opt.selected = true
+    intervalSelect.appendChild(opt)
+  })
+
+  const advanceRow = document.createElement('div')
+  advanceRow.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:12px'
+  advanceRow.appendChild(document.createTextNode('提前'))
+  const advanceInput = document.createElement('input')
+  advanceInput.type = 'number'; advanceInput.min = '0'; advanceInput.max = '1440'
+  advanceInput.value = note.reminder?.advanceMinutes ?? 10
+  advanceInput.style.cssText = 'width:52px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;font-size:12px'
+  advanceRow.appendChild(advanceInput)
+  advanceRow.appendChild(document.createTextNode('分鐘提醒'))
+
+  reminderCb.addEventListener('change', () => {
+    reminderDetails.style.display = reminderCb.checked ? 'flex' : 'none'
+  })
+  reminderDetails.appendChild(datetimeInput)
+  reminderDetails.appendChild(intervalSelect)
+  reminderDetails.appendChild(advanceRow)
+
+  // Buttons
+  const actions = document.createElement('div')
+  actions.className = 'floatnote-actions'
+  const cancelBtn = document.createElement('button')
+  cancelBtn.className = 'floatnote-btn-cancel'
+  cancelBtn.textContent = '取消'
+  const saveBtn = document.createElement('button')
+  saveBtn.className = 'floatnote-btn-save'
+  saveBtn.textContent = '儲存'
+
+  const closeFloat = () => {
+    floatNoteMap.delete(note.id)
+    el.remove()
+    renderNoteList()
+  }
+
+  cancelBtn.addEventListener('click', () => {
+    if (isNew && !titleInput.value.trim() && !contentInput.value.trim()) {
+      state.notes = state.notes.filter(n => n.id !== note.id)
+    }
+    closeFloat()
+  })
+  closeBtn.addEventListener('click', () => cancelBtn.click())
+
+  saveBtn.addEventListener('click', async () => {
+    const ok = await saveNote(note, {
+      title:            titleInput.value.trim(),
+      content:          contentInput.value.trim(),
+      tags:             Array.from(selectedTags),
+      reminderEnabled:  reminderCb.checked,
+      reminderDatetime: datetimeInput.value,
+      reminderInterval: parseInt(intervalSelect.value),
+      reminderAdvance:  Math.max(0, parseInt(advanceInput.value) || 0),
+    })
+    if (ok) closeFloat()
+  })
+
+  actions.appendChild(cancelBtn)
+  actions.appendChild(saveBtn)
+
+  // Assemble
+  body.appendChild(titleInput)
+  body.appendChild(contentInput)
+  if (state.tags.length) body.appendChild(tagWrap)
+  body.appendChild(reminderRow)
+  body.appendChild(reminderDetails)
+  body.appendChild(actions)
+  el.appendChild(titlebar)
+  el.appendChild(body)
+
+  // Drag
+  let dragging = false, ox = 0, oy = 0
+  titlebar.addEventListener('mousedown', e => {
+    dragging = true
+    ox = e.clientX - el.offsetLeft
+    oy = e.clientY - el.offsetTop
+    bringFloatToFront(el)
+    e.preventDefault()
+  })
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return
+    const margin = 10
+    const nx = Math.min(Math.max(e.clientX - ox, margin), window.innerWidth  - 280 - margin)
+    const ny = Math.min(Math.max(e.clientY - oy, margin), window.innerHeight - 100 - margin)
+    el.style.left = nx + 'px'
+    el.style.top  = ny + 'px'
+  })
+  document.addEventListener('mouseup', () => { dragging = false })
+
+  document.body.appendChild(el)
+  floatNoteMap.set(note.id, el)
+  setTimeout(() => contentInput.focus(), 50)
+}
+
 // ── Note deletion ─────────────────────────────────────────────────────────────
 
 async function deleteNote(id) {
