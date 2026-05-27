@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Notification, screen } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, screen } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { randomUUID } = require('crypto')
@@ -6,8 +6,12 @@ const { loadNotes, clampPosition } = require('./src/data')
 const { createWriteQueue } = require('./src/writeQueue')
 const { startPolling } = require('./src/reminderService')
 
-const DATA_PATH = path.join(__dirname, 'data', 'notes.json')
-const ASSETS_USER = path.join(__dirname, 'assets', 'user')
+const DATA_PATH   = app.isPackaged
+  ? path.join(app.getPath('userData'), 'notes.json')
+  : path.join(__dirname, 'data', 'notes.json')
+const ASSETS_USER = app.isPackaged
+  ? path.join(app.getPath('userData'), 'user-images')
+  : path.join(__dirname, 'assets', 'user')
 
 let win
 let notesState
@@ -19,7 +23,7 @@ app.whenReady().then(() => {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize
 
   try {
-    notesState = loadNotes()
+    notesState = loadNotes(DATA_PATH)
   } catch (err) {
     dialog.showErrorBox('NotePet 資料錯誤', err.message)
     app.quit()
@@ -57,12 +61,12 @@ app.whenReady().then(() => {
     () => notesState,
     (dueNotes) => {
       dueNotes.forEach(note => {
-        try {
-          new Notification({ title: note.title, body: note.content || '提醒時間到！' }).show()
-        } catch {
-          dialog.showMessageBox(win, { message: note.title, detail: note.content || '提醒時間到！' })
+        if (note.reminder.interval > 0) {
+          note.reminder.datetime = new Date(Date.now() + note.reminder.interval * 60000).toISOString()
+        } else {
+          note.reminder.notified = true
         }
-        note.reminder.notified = true
+        win.webContents.send('reminder:due', { id: note.id, reminder: { ...note.reminder } })
       })
       writeQueue.enqueue(notesState)
     }
@@ -113,6 +117,16 @@ function setupIPC() {
     } catch (err) {
       return { error: err.message }
     }
+  })
+
+  ipcMain.handle('win:set-ignore-mouse', (_, ignore) => {
+    try { win.setIgnoreMouseEvents(ignore, { forward: true }) } catch { /* ignore */ }
+  })
+
+  ipcMain.handle('pet:resolve-image', (_, imgPath) => {
+    if (!imgPath || imgPath === 'assets/default-pet.png') return null
+    const absPath = path.join(ASSETS_USER, path.basename(imgPath))
+    return 'file:///' + absPath.replace(/\\/g, '/')
   })
 
   ipcMain.handle('app:quit', () => app.quit())

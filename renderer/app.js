@@ -88,6 +88,17 @@ async function init() {
   document.getElementById('panel-gear').addEventListener('click', openSettingsModal)
   renderTagFilter()
   renderNoteList()
+
+  window.notepet.onReminderDue(({ id, reminder }) => {
+    const note = state.notes.find(n => n.id === id)
+    if (!note) return
+    if (reminder) Object.assign(note.reminder, reminder)
+    if (!panelOpen && floatNoteMap.size === 0) {
+      window.notepet.setIgnoreMouse(false)
+      _mouseIgnored = false
+    }
+    openFloatNote(note, false)
+  })
 }
 
 function setupDrag(pet) {
