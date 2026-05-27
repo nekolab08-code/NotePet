@@ -282,164 +282,60 @@ function renderNoteList() {
   visible.forEach(note => list.appendChild(buildNoteCard(note)))
 }
 
+function formatCardDate(note) {
+  if (!note.createdAt) return ''
+  const d = new Date(note.createdAt)
+  if (isNaN(d)) return ''
+  return d.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })
+}
+
 function buildNoteCard(note) {
   const card = document.createElement('div')
   card.className = 'note-card'
 
-  const info = document.createElement('div')
-  info.style.flex = '1'
+  const header = document.createElement('div')
+  header.className = 'note-card-header'
 
   const titleEl = document.createElement('div')
   titleEl.className = 'note-card-title'
-  titleEl.textContent = note.title || '(無標題)'
+  titleEl.textContent = note.title || ''
 
-  const metaEl = document.createElement('div')
-  metaEl.className = 'note-card-meta'
-  const tagPart = (note.tags || []).join(', ')
-  const hasReminder = note.reminder && note.reminder.enabled && !note.reminder.notified
-  const reminderPart = hasReminder
-    ? ' · ⏰ ' + new Date(note.reminder.datetime).toLocaleString('zh-TW', {
-        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-        hour12: (state.settings?.timeFormat ?? '24') === '12',
-      })
-    : ''
-  metaEl.textContent = tagPart + reminderPart
-
-  info.appendChild(titleEl)
-  info.appendChild(metaEl)
+  const dateEl = document.createElement('div')
+  dateEl.className = 'note-card-date'
+  dateEl.textContent = formatCardDate(note)
 
   const delBtn = document.createElement('button')
   delBtn.className = 'note-card-delete'
   delBtn.textContent = '×'
   delBtn.addEventListener('click', e => { e.stopPropagation(); deleteNote(note.id) })
 
-  card.appendChild(info)
-  card.appendChild(delBtn)
+  header.appendChild(titleEl)
+  header.appendChild(dateEl)
+  header.appendChild(delBtn)
+  card.appendChild(header)
+
+  const preview = document.createElement('div')
+  preview.className = 'note-card-preview'
+  preview.textContent = note.content || ''
+  card.appendChild(preview)
+
+  const tagPart = (note.tags || []).join(', ')
+  const hasReminder = note.reminder?.enabled && !note.reminder?.notified
+  if (tagPart || hasReminder) {
+    const meta = document.createElement('div')
+    meta.className = 'note-card-meta'
+    const reminderPart = hasReminder
+      ? (tagPart ? ' · ' : '') + '⏰ ' + new Date(note.reminder.datetime).toLocaleString('zh-TW', {
+          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+          hour12: (state.settings?.timeFormat ?? '24') === '12',
+        })
+      : ''
+    meta.textContent = tagPart + reminderPart
+    card.appendChild(meta)
+  }
+
+  card.addEventListener('dblclick', () => openFloatNote(note, false))
   return card
-}
-
-// ── Note editor ───────────────────────────────────────────────────────────────
-
-function buildNoteEditor(note) {
-  const editor = document.createElement('div')
-  editor.className = 'note-editor'
-
-  const titleInput = document.createElement('input')
-  titleInput.type = 'text'
-  titleInput.placeholder = '標題'
-  titleInput.value = note.title || ''
-
-  const contentInput = document.createElement('textarea')
-  contentInput.placeholder = '內容（選填）'
-  contentInput.value = note.content || ''
-
-  // Tag pills
-  const selectedTags = new Set(note.tags || [])
-  const tagWrap = document.createElement('div')
-  tagWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px'
-  state.tags.forEach(tag => {
-    const pill = document.createElement('button')
-    pill.type = 'button'
-    pill.className = 'tag-btn' + (selectedTags.has(tag) ? ' active' : '')
-    pill.textContent = tag
-    pill.addEventListener('click', () => {
-      selectedTags.has(tag) ? selectedTags.delete(tag) : selectedTags.add(tag)
-      pill.classList.toggle('active')
-    })
-    tagWrap.appendChild(pill)
-  })
-
-  // Reminder section
-  const reminderRow = document.createElement('div')
-  reminderRow.style.cssText = 'display:flex;align-items:center;gap:8px'
-
-  const switchWrap = document.createElement('label')
-  switchWrap.className = 'toggle-switch'
-  const reminderCb = document.createElement('input')
-  reminderCb.type = 'checkbox'
-  reminderCb.checked = !!(note.reminder && note.reminder.enabled)
-  const slider = document.createElement('span')
-  slider.className = 'toggle-slider'
-  switchWrap.appendChild(reminderCb)
-  switchWrap.appendChild(slider)
-
-  const reminderText = document.createElement('span')
-  reminderText.style.cssText = 'font-size:12px;cursor:pointer'
-  reminderText.textContent = '設定提醒'
-  reminderText.addEventListener('click', () => { reminderCb.checked = !reminderCb.checked; reminderCb.dispatchEvent(new Event('change')) })
-
-  reminderRow.appendChild(switchWrap)
-  reminderRow.appendChild(reminderText)
-
-  const reminderDetails = document.createElement('div')
-  reminderDetails.style.cssText = 'display:flex;flex-direction:column;gap:4px'
-  reminderDetails.style.display = reminderCb.checked ? 'flex' : 'none'
-
-  const datetimeInput = document.createElement('input')
-  datetimeInput.type = 'datetime-local'
-  datetimeInput.value = note.reminder && note.reminder.datetime
-    ? note.reminder.datetime.slice(0, 16) : ''
-
-  const intervalSelect = document.createElement('select')
-  ;[[0,'不重複'],[30,'每30分鐘'],[60,'每小時'],[120,'每2小時'],[240,'每4小時']].forEach(([val, label]) => {
-    const opt = document.createElement('option')
-    opt.value = val; opt.textContent = label
-    if ((note.reminder?.interval ?? 0) === val) opt.selected = true
-    intervalSelect.appendChild(opt)
-  })
-
-  const advanceRow = document.createElement('div')
-  advanceRow.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:12px'
-  advanceRow.appendChild(document.createTextNode('提前'))
-  const advanceInput = document.createElement('input')
-  advanceInput.type = 'number'; advanceInput.min = '0'; advanceInput.max = '1440'
-  advanceInput.value = note.reminder?.advanceMinutes ?? 10
-  advanceInput.style.cssText = 'width:52px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;font-size:12px'
-  advanceRow.appendChild(advanceInput)
-  advanceRow.appendChild(document.createTextNode('分鐘提醒'))
-
-  reminderCb.addEventListener('change', () => {
-    reminderDetails.style.display = reminderCb.checked ? 'flex' : 'none'
-  })
-  reminderDetails.appendChild(datetimeInput)
-  reminderDetails.appendChild(intervalSelect)
-  reminderDetails.appendChild(advanceRow)
-
-  // Action buttons
-  const btnRow = document.createElement('div')
-  btnRow.style.cssText = 'display:flex;gap:6px;justify-content:flex-end'
-
-  const cancelBtn = document.createElement('button')
-  cancelBtn.textContent = '取消'
-  cancelBtn.style.cssText = 'background:#eee;border:none;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:12px'
-  cancelBtn.addEventListener('click', () => {
-    if (!note.title && !note.content) state.notes = state.notes.filter(n => n.id !== note.id)
-    renderNoteList()
-  })
-
-  const saveBtn = document.createElement('button')
-  saveBtn.textContent = '儲存'
-  saveBtn.style.cssText = 'background:#f0c040;border:none;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:12px'
-  saveBtn.addEventListener('click', () => saveNote(note, {
-    title:            titleInput.value.trim(),
-    content:          contentInput.value.trim(),
-    tags:             Array.from(selectedTags),
-    reminderEnabled:   reminderCb.checked,
-    reminderDatetime:  datetimeInput.value,
-    reminderInterval:  parseInt(intervalSelect.value),
-    reminderAdvance:   Math.max(0, parseInt(advanceInput.value) || 0),
-  }))
-
-  btnRow.appendChild(cancelBtn)
-  btnRow.appendChild(saveBtn)
-
-  editor.appendChild(titleInput)
-  editor.appendChild(contentInput)
-  if (state.tags.length) editor.appendChild(tagWrap)
-  editor.appendChild(reminderRow)
-  editor.appendChild(reminderDetails)
-  editor.appendChild(btnRow)
-  return editor
 }
 
 // ── saveNote — YOUR TURN ──────────────────────────────────────────────────────
