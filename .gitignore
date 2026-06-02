@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# User data
+data/
+assets/user/
+
+# Build output
+dist/
+out/
+*.tmp
+
+# Test coverage
+coverage/
+
+# AI / Claude related
+docs/superpowers/
+docs/specs/
+docs/plans/
+.claude/
+*.claude
+PROGRESS.md
+CLAUDE.md
+
+# Temp files
+C:Tempold_app.js
+C\xef\x80\xbaTempold_app.js

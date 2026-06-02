@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <title>NotePet</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="overlay" class="hidden"></div>
+  <div id="pet-container">
+    <div class="pet-wrapper">
+      <img id="pet-img" src="../assets/default-pet.png" alt="pet" draggable="false" />
+      <div id="mood-badge" class="mood-badge mood-happy">❤️</div>
+    </div>
+    <div id="speech-bubble" class="speech-bubble hidden"></div>
+  </div>
+  <div id="panel" class="hidden">
+    <div id="panel-dragbar" title="拖曳移動"></div>
+    <button id="panel-gear">⚙</button>
+    <div id="tag-filter"></div>
+    <button id="btn-add">+ 新增</button>
+    <div id="note-list"></div>
+    <div id="inline-modal" class="hidden"></div>
+  </div>
+  <div id="error-toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
